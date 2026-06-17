@@ -1,0 +1,102 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const db = require('./db');
+
+const app = express();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+const SECRET_KEY = "admin123"; // intentional SonarQube finding
+
+app.get('/', (req,res)=>{
+    res.send(`
+    <h1>Online Book Store</h1>
+    <ul>
+      <li><a href="/books">Books</a></li>
+      <li><a href="/login">Login</a></li>
+      <li><a href="/register">Register</a></li>
+    </ul>
+    `);
+});
+
+app.get('/books',(req,res)=>{
+    db.all("SELECT * FROM books",(err,rows)=>{
+        res.json(rows);
+    });
+});
+
+app.get('/search',(req,res)=>{
+    const keyword=req.query.q || '';
+
+    db.all(
+      `SELECT * FROM books WHERE title LIKE '%${keyword}%'`,
+      (err,rows)=>{
+          if(err){
+             return res.status(500).send(err.message);
+          }
+          res.json(rows);
+      }
+    );
+});
+
+app.get('/login',(req,res)=>{
+   res.send('Login endpoint ready');
+});
+
+app.post('/login',(req,res)=>{
+
+   const username=req.body.username;
+   const password=req.body.password;
+
+   const query=
+   `SELECT * FROM users
+    WHERE username='${username}'
+    AND password='${password}'`;
+
+   db.all(query,(err,rows)=>{
+      if(rows.length>0){
+          res.send("Login Successful");
+      }else{
+          res.send("Invalid Credentials");
+      }
+   });
+});
+
+app.post('/register',(req,res)=>{
+
+   const username=req.body.username;
+   const password=req.body.password;
+
+   db.run(
+      `INSERT INTO users(username,password)
+       VALUES (?,?)`,
+      [username,password]
+   );
+
+   res.send("User Registered");
+});
+
+app.post('/order',(req,res)=>{
+
+   const username=req.body.username;
+   const book=req.body.book;
+
+   db.run(
+      `INSERT INTO orders(username,book)
+       VALUES (?,?)`,
+      [username,book]
+   );
+
+   res.send("Order Placed");
+});
+
+app.get('/orders',(req,res)=>{
+   db.all("SELECT * FROM orders",(err,rows)=>{
+      res.json(rows);
+   });
+});
+
+app.listen(3000,()=>{
+   console.log('Book Store running on port 3000');
+});
