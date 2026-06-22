@@ -1,5 +1,7 @@
+```python
 import json
 from pathlib import Path
+from openpyxl import Workbook
 
 REPORT_DIR = "/var/jenkins_home/reports/raw"
 
@@ -49,6 +51,8 @@ Path("/var/jenkins_home/reports/final").mkdir(
     exist_ok=True
 )
 
+# Generate JSON report
+
 json_output = "/var/jenkins_home/reports/final/security-summary.json"
 
 with open(json_output, "w") as f:
@@ -56,6 +60,29 @@ with open(json_output, "w") as f:
 
 print("JSON Summary generated:")
 print(json_output)
+
+# Generate Excel report
+
+wb = Workbook()
+
+ws = wb.active
+ws.title = "Security Summary"
+
+ws.append(["Severity", "Count"])
+
+ws.append(["CRITICAL", summary["CRITICAL"]])
+ws.append(["HIGH", summary["HIGH"]])
+ws.append(["MEDIUM", summary["MEDIUM"]])
+ws.append(["LOW", summary["LOW"]])
+
+excel_output = "/var/jenkins_home/reports/final/security-report.xlsx"
+
+wb.save(excel_output)
+
+print("Excel Report generated:")
+print(excel_output)
+
+# Generate HTML report
 
 html = f"""
 <html>
@@ -90,3 +117,5 @@ with open(html_output, "w") as f:
 
 print("HTML Report generated:")
 print(html_output)
+```
+
