@@ -12,6 +12,8 @@ from reportlab.platypus import (
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 
+import matplotlib.pyplot as plt
+
 REPORT_DIR = "/var/jenkins_home/reports/raw"
 
 files = [
@@ -162,6 +164,37 @@ doc.build(elements)
 
 print("PDF Report generated:")
 print(pdf_output)
+
+# ------------------------------------------------------------------
+# CHART REPORT
+# ------------------------------------------------------------------
+
+labels = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+
+values = [
+    summary["CRITICAL"],
+    summary["HIGH"],
+    summary["MEDIUM"],
+    summary["LOW"]
+]
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(labels, values)
+
+plt.title("Security Vulnerability Distribution")
+
+plt.xlabel("Severity")
+plt.ylabel("Count")
+
+chart_output = "/var/jenkins_home/reports/final/security-chart.png"
+
+plt.savefig(chart_output)
+
+plt.close()
+
+print("Chart generated:")
+print(chart_output)
 
 # ------------------------------------------------------------------
 # HTML REPORT
