@@ -32,9 +32,11 @@ summary_json = {
     "critical": 0,
     "high": 0,
     "medium": 0,
-    "low": 0,
-    "semgrep_findings": 0
+    "low": 0
 }
+
+# Semgrep counter
+semgrep_findings = 0
 
 # --------------------------------------------------
 # Parse Trivy Reports
@@ -63,14 +65,19 @@ for report in files:
 
 try:
     with open(
-        f"{REPORT_DIR}/semgrep.json",
+        "/var/jenkins_home/reports/raw/semgrep.json",
         "r"
     ) as f:
-
         semgrep_data = json.load(f)
 
-    summary_json["semgrep_findings"] = len(
+    semgrep_findings = len(
         semgrep_data.get("results", [])
+    )
+
+except FileNotFoundError:
+    print(
+        "Semgrep report not found. "
+        "Skipping Semgrep aggregation."
     )
 
 except Exception as e:
@@ -84,6 +91,7 @@ summary_json["critical"] = summary["CRITICAL"]
 summary_json["high"] = summary["HIGH"]
 summary_json["medium"] = summary["MEDIUM"]
 summary_json["low"] = summary["LOW"]
+summary_json["semgrep_findings"] = semgrep_findings
 
 # --------------------------------------------------
 # Create Output Directory
@@ -98,7 +106,10 @@ Path("/var/jenkins_home/reports/final").mkdir(
 # JSON REPORT
 # --------------------------------------------------
 
-json_output = "/var/jenkins_home/reports/final/security-summary.json"
+json_output = (
+    "/var/jenkins_home/reports/final/"
+    "security-summary.json"
+)
 
 with open(json_output, "w") as f:
     json.dump(summary_json, f, indent=4)
@@ -115,15 +126,18 @@ wb = Workbook()
 ws = wb.active
 ws.title = "Security Summary"
 
-ws.append(["Severity", "Count"])
+ws.append(["Metric", "Count"])
 
 ws.append(["CRITICAL", summary["CRITICAL"]])
 ws.append(["HIGH", summary["HIGH"]])
 ws.append(["MEDIUM", summary["MEDIUM"]])
 ws.append(["LOW", summary["LOW"]])
-ws.append(["SEMGREP_FINDINGS", summary_json["semgrep_findings"]])
+ws.append(["SEMGREP_FINDINGS", semgrep_findings])
 
-excel_output = "/var/jenkins_home/reports/final/security-report.xlsx"
+excel_output = (
+    "/var/jenkins_home/reports/final/"
+    "security-report.xlsx"
+)
 
 wb.save(excel_output)
 
@@ -134,7 +148,10 @@ print(excel_output)
 # PDF REPORT
 # --------------------------------------------------
 
-pdf_output = "/var/jenkins_home/reports/final/security-report.pdf"
+pdf_output = (
+    "/var/jenkins_home/reports/final/"
+    "security-report.pdf"
+)
 
 doc = SimpleDocTemplate(pdf_output)
 
@@ -172,21 +189,24 @@ elements.append(source_reports)
 elements.append(Spacer(1, 20))
 
 table_data = [
-    ["Severity", "Count"],
+    ["Metric", "Count"],
     ["CRITICAL", summary["CRITICAL"]],
     ["HIGH", summary["HIGH"]],
     ["MEDIUM", summary["MEDIUM"]],
     ["LOW", summary["LOW"]],
-    ["SEMGREP FINDINGS", summary_json["semgrep_findings"]]
+    ["SEMGREP_FINDINGS", semgrep_findings]
 ]
 
 table = Table(table_data)
 
 table.setStyle(
     TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("GRID", (0, 0), (-1, -1), 1, colors.black),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold")
+        ("BACKGROUND", (0, 0), (-1, 0),
+         colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1),
+         1, colors.black),
+        ("FONTNAME", (0, 0), (-1, 0),
+         "Helvetica-Bold")
     ])
 )
 
@@ -201,7 +221,12 @@ print(pdf_output)
 # CHART REPORT
 # --------------------------------------------------
 
-labels = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+labels = [
+    "CRITICAL",
+    "HIGH",
+    "MEDIUM",
+    "LOW"
+]
 
 values = [
     summary["CRITICAL"],
@@ -214,12 +239,17 @@ plt.figure(figsize=(8, 5))
 
 plt.bar(labels, values)
 
-plt.title("Security Vulnerability Distribution")
+plt.title(
+    "Security Vulnerability Distribution"
+)
 
 plt.xlabel("Severity")
 plt.ylabel("Count")
 
-chart_output = "/var/jenkins_home/reports/final/security-chart.png"
+chart_output = (
+    "/var/jenkins_home/reports/final/"
+    "security-chart.png"
+)
 
 plt.savefig(chart_output)
 
@@ -250,9 +280,22 @@ html = f"""
 - Semgrep SAST Scan
 </p>
 
-<table border="1" cellpadding="5" cellspacing="0">
+<h2>Static Code Analysis</h2>
+
+<p>
+Semgrep Findings:
+<b>{semgrep_findings}</b>
+</p>
+
+<table border="1"
+       cellpadding="8"
+       cellspacing="0"
+       style="border-collapse:collapse;
+              font-family:Arial;
+              width:50%;">
+
 <tr>
-<th>Severity</th>
+<th>Metric</th>
 <th>Count</th>
 </tr>
 
@@ -260,7 +303,7 @@ html = f"""
 <tr><td>HIGH</td><td>{summary['HIGH']}</td></tr>
 <tr><td>MEDIUM</td><td>{summary['MEDIUM']}</td></tr>
 <tr><td>LOW</td><td>{summary['LOW']}</td></tr>
-<tr><td>SEMGREP FINDINGS</td><td>{summary_json['semgrep_findings']}</td></tr>
+<tr><td>SEMGREP_FINDINGS</td><td>{semgrep_findings}</td></tr>
 
 </table>
 
@@ -268,7 +311,10 @@ html = f"""
 </html>
 """
 
-html_output = "/var/jenkins_home/reports/final/security-report.html"
+html_output = (
+    "/var/jenkins_home/reports/final/"
+    "security-report.html"
+)
 
 with open(html_output, "w") as f:
     f.write(html)
