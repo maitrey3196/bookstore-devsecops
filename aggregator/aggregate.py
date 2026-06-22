@@ -32,10 +32,14 @@ summary_json = {
     "critical": 0,
     "high": 0,
     "medium": 0,
-    "low": 0
+    "low": 0,
+    "semgrep_findings": 0
 }
 
-# Parse Trivy reports
+# --------------------------------------------------
+# Parse Trivy Reports
+# --------------------------------------------------
+
 for report in files:
     path = f"{REPORT_DIR}/{report}"
 
@@ -53,21 +57,46 @@ for report in files:
     except Exception as e:
         print(f"Error reading {report}: {e}")
 
-# Build JSON summary
+# --------------------------------------------------
+# Parse Semgrep Report
+# --------------------------------------------------
+
+try:
+    with open(
+        f"{REPORT_DIR}/semgrep.json",
+        "r"
+    ) as f:
+
+        semgrep_data = json.load(f)
+
+    summary_json["semgrep_findings"] = len(
+        semgrep_data.get("results", [])
+    )
+
+except Exception as e:
+    print(f"Semgrep parse error: {e}")
+
+# --------------------------------------------------
+# Build Summary
+# --------------------------------------------------
+
 summary_json["critical"] = summary["CRITICAL"]
 summary_json["high"] = summary["HIGH"]
 summary_json["medium"] = summary["MEDIUM"]
 summary_json["low"] = summary["LOW"]
 
-# Create output directory
+# --------------------------------------------------
+# Create Output Directory
+# --------------------------------------------------
+
 Path("/var/jenkins_home/reports/final").mkdir(
     parents=True,
     exist_ok=True
 )
 
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # JSON REPORT
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 json_output = "/var/jenkins_home/reports/final/security-summary.json"
 
@@ -77,9 +106,9 @@ with open(json_output, "w") as f:
 print("JSON Summary generated:")
 print(json_output)
 
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # EXCEL REPORT
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 wb = Workbook()
 
@@ -92,6 +121,7 @@ ws.append(["CRITICAL", summary["CRITICAL"]])
 ws.append(["HIGH", summary["HIGH"]])
 ws.append(["MEDIUM", summary["MEDIUM"]])
 ws.append(["LOW", summary["LOW"]])
+ws.append(["SEMGREP_FINDINGS", summary_json["semgrep_findings"]])
 
 excel_output = "/var/jenkins_home/reports/final/security-report.xlsx"
 
@@ -100,9 +130,9 @@ wb.save(excel_output)
 print("Excel Report generated:")
 print(excel_output)
 
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # PDF REPORT
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 pdf_output = "/var/jenkins_home/reports/final/security-report.pdf"
 
@@ -132,7 +162,8 @@ source_reports = Paragraph(
     """
     Source Reports:<br/>
     - Trivy Filesystem Scan<br/>
-    - Trivy Image Scan
+    - Trivy Image Scan<br/>
+    - Semgrep SAST Scan
     """,
     styles["Normal"]
 )
@@ -145,7 +176,8 @@ table_data = [
     ["CRITICAL", summary["CRITICAL"]],
     ["HIGH", summary["HIGH"]],
     ["MEDIUM", summary["MEDIUM"]],
-    ["LOW", summary["LOW"]]
+    ["LOW", summary["LOW"]],
+    ["SEMGREP FINDINGS", summary_json["semgrep_findings"]]
 ]
 
 table = Table(table_data)
@@ -165,9 +197,9 @@ doc.build(elements)
 print("PDF Report generated:")
 print(pdf_output)
 
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # CHART REPORT
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 labels = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
 
@@ -196,9 +228,9 @@ plt.close()
 print("Chart generated:")
 print(chart_output)
 
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # HTML REPORT
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 html = f"""
 <html>
@@ -214,7 +246,8 @@ html = f"""
 <p>
 <b>Source Reports:</b><br>
 - Trivy Filesystem Scan<br>
-- Trivy Image Scan
+- Trivy Image Scan<br>
+- Semgrep SAST Scan
 </p>
 
 <table border="1" cellpadding="5" cellspacing="0">
@@ -227,6 +260,7 @@ html = f"""
 <tr><td>HIGH</td><td>{summary['HIGH']}</td></tr>
 <tr><td>MEDIUM</td><td>{summary['MEDIUM']}</td></tr>
 <tr><td>LOW</td><td>{summary['LOW']}</td></tr>
+<tr><td>SEMGREP FINDINGS</td><td>{summary_json['semgrep_findings']}</td></tr>
 
 </table>
 
