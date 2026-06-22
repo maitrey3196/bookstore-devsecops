@@ -1,4 +1,3 @@
-```python
 import json
 from pathlib import Path
 from openpyxl import Workbook
@@ -117,5 +116,3 @@ with open(html_output, "w") as f:
 
 print("HTML Report generated:")
 print(html_output)
-```
-
