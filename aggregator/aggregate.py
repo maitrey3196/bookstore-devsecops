@@ -4,71 +4,60 @@ from pathlib import Path
 REPORT_DIR = "/var/jenkins_home/reports/raw"
 
 files = [
-"trivy-fs.json",
-"trivy-image.json"
+    "trivy-fs.json",
+    "trivy-image.json"
 ]
 
 summary = {
-"CRITICAL": 0,
-"HIGH": 0,
-"MEDIUM": 0,
-"LOW": 0
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0
 }
 
 summary_json = {
-"critical": 0,
-"high": 0,
-"medium": 0,
-"low": 0
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
 }
 
 for report in files:
-path = f"{REPORT_DIR}/{report}"
+    path = f"{REPORT_DIR}/{report}"
 
-```
-try:
-    with open(path, "r") as f:
-        data = json.load(f)
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
 
-    for result in data.get("Results", []):
-        for vuln in result.get("Vulnerabilities", []):
-            sev = vuln.get("Severity", "").upper()
+        for result in data.get("Results", []):
+            for vuln in result.get("Vulnerabilities", []):
+                sev = vuln.get("Severity", "").upper()
 
-            if sev in summary:
-                summary[sev] += 1
+                if sev in summary:
+                    summary[sev] += 1
 
-except Exception as e:
-    print(f"Error reading {report}: {e}")
-```
-
-# Build JSON summary
+    except Exception as e:
+        print(f"Error reading {report}: {e}")
 
 summary_json["critical"] = summary["CRITICAL"]
 summary_json["high"] = summary["HIGH"]
 summary_json["medium"] = summary["MEDIUM"]
 summary_json["low"] = summary["LOW"]
 
-# Ensure output directory exists
-
 Path("/var/jenkins_home/reports/final").mkdir(
-parents=True,
-exist_ok=True
+    parents=True,
+    exist_ok=True
 )
-
-# Generate JSON report
 
 json_output = "/var/jenkins_home/reports/final/security-summary.json"
 
 with open(json_output, "w") as f:
-json.dump(summary_json, f, indent=4)
+    json.dump(summary_json, f, indent=4)
 
 print("JSON Summary generated:")
 print(json_output)
 
-# Generate HTML report
-
 html = f"""
-
 <html>
 <head>
 <title>DevSecOps Security Report</title>
@@ -97,9 +86,7 @@ html = f"""
 html_output = "/var/jenkins_home/reports/final/security-report.html"
 
 with open(html_output, "w") as f:
-f.write(html)
+    f.write(html)
 
 print("HTML Report generated:")
 print(html_output)
-"""
-
